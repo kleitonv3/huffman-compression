@@ -62,6 +62,7 @@ struct MinHeapNode* newNode(char data, unsigned int freq)
 	temp->left = temp->right = NULL;
 	temp->data = data;
 	temp->freq = freq;
+	
 
 	return temp;
 }
@@ -71,17 +72,19 @@ struct MinHeapNode* newNode(char data, unsigned int freq)
 struct MinHeap* createMinHeap(unsigned int capacity)
 
 {
-
 	struct MinHeap* minHeap
 		= (struct MinHeap*)malloc(sizeof(struct MinHeap));
 
 	// current size is 0
+	printf("Antes\n");
 	minHeap->size = 0;
+	printf("Depos\n");
+
 
 	minHeap->capacity = capacity;
-
-	minHeap->array = (struct MinHeapNode**)malloc(
-		minHeap->capacity * sizeof(struct MinHeapNode*));
+	
+	minHeap->array = (struct MinHeapNode**)malloc((minHeap->capacity)*sizeof(struct MinHeapNode*)); // Estava dando erro sem o 
+	
 	return minHeap;
 }
 
@@ -202,15 +205,17 @@ int isLeaf(struct MinHeapNode* root)
 // data[] in min heap. Initially size of
 // min heap is equal to capacity
 struct MinHeap* createAndBuildMinHeap(char data[],
-									int freq[], int size)
+									unsigned int freq[], int size)
 
 {
-
 	struct MinHeap* minHeap = createMinHeap(size);
-
-	for (int i = 0; i < size; ++i)
+	
+	for (int i = 0; i < size; i++) {
+		
 		minHeap->array[i] = newNode(data[i], freq[i]);
-
+		
+	}
+	
 	minHeap->size = size;
 	buildMinHeap(minHeap);
 
@@ -218,18 +223,15 @@ struct MinHeap* createAndBuildMinHeap(char data[],
 }
 
 // The main function that builds Huffman tree
-struct MinHeapNode* buildHuffmanTree(char data[],
-									int freq[], int size)
-
-{
+struct MinHeapNode* buildHuffmanTree(char data[], unsigned int freq[], int size) {
 	struct MinHeapNode *left, *right, *top;
 
 	// Step 1: Create a min heap of capacity
 	// equal to size. Initially, there are
 	// modes equal to size.
-	struct MinHeap* minHeap
-		= createAndBuildMinHeap(data, freq, size);
-
+	
+	struct MinHeap* minHeap = createAndBuildMinHeap(data, freq, size);
+	
 	// Iterate while size of heap doesn't become 1
 	while (!isSizeOne(minHeap)) {
 
@@ -315,13 +317,6 @@ unsigned int formaHuffmanArqTree (struct MinHeapNode* root, ArchiveTree* tree, i
 	return aux;
 }
 
-void escreveHuffmanTree(struct MinHeapNode* root, int size) {
-	ArchiveTree* tree = (ArchiveTree*)malloc(size*sizeof(ArchiveTree));
-	int aux = 0;
-	formaHuffmanArqTree (root, tree, &aux, 0);
-	// printf("\nPrimeiro node [%c : %d] %d %d\n", tree[0].data, tree[0].freq, tree[0].posLeft, tree[0].posRight);
-}
-
 struct MinHeapNode* leHuffmanArqTree(struct MinHeapNode* root, ArchiveTree* tree, int aux) {
 	
 	root = newNode(tree[aux].data, tree[aux].freq);
@@ -385,7 +380,7 @@ MatrizCompressao* criaMatrizCompressao(struct MinHeapNode* root, char data[], in
 	return matriz;
 }
 
-int leArquivoTexto(char* data, int* freq) {
+int leArquivoTexto(char* data, int* freq, char* fluxo) {
 	FILE* arquivo = fopen("arquivo.txt", "r");
     if(arquivo == NULL) {
         fprintf(stderr, "Erro ao abrir o arquivo.txt.");
@@ -393,13 +388,21 @@ int leArquivoTexto(char* data, int* freq) {
     }
 
     int size = 0;
+	int size_fluxo = 0;
 	int existe = 0;
     int caractere;
     
 	while((caractere = fgetc(arquivo)) != EOF ) {
+		// Adiciona caractere no fluxo
+		if (size_fluxo >= sizeof(fluxo)) {
+			fluxo = (char*)realloc(fluxo, sizeof(fluxo)*2);
+		}
+		fluxo[size_fluxo] = caractere;
+		size_fluxo++;
+
 		// Verificar se ja existe esse caractere na estrutura
+		existe = 0;
 		for (int i=0; i<size; i++) {
-			existe = 0;
 			if (data[i] == caractere) {
 				freq[i]++;
 				existe = 1;
@@ -415,20 +418,48 @@ int leArquivoTexto(char* data, int* freq) {
 	}
 
     fclose(arquivo);
-
     return size;
+}
+
+unsigned char* saidaComprimida () {
+
+}
+
+int escreveArquivoBinario (struct MinHeapNode* root, char* data, int size, char* fluxo) {
+	ArchiveTree* tree = (ArchiveTree*)malloc(size*sizeof(ArchiveTree));
+	int aux = 0;
+	formaHuffmanArqTree (root, tree, &aux, 0);
+
+	MatrizCompressao* mat = criaMatrizCompressao(root, data, size);
+
+	ArchiveHead head;
+	head.tamArchiveTree = sizeof(tree);
+	head.bitsText = 0;
+	for (int i=0; i<size; i++) {
+		head.bitsText += mat[i].tamCodes*mat[i].freq;
+	}
+
+	FILE* arquivo = fopen("saida.bin", "wb");
+    if(arquivo == NULL) {
+        fprintf(stderr, "Erro ao criar aquivo binario.");
+        return -1;
+    }
+	// Escreve cabeca e Huffman Archive tree
+	fwrite(&head, sizeof(ArchiveHead), 1, arquivo);
+	fwrite(tree, sizeof(tree), 1, arquivo);
+	return 0;
 }
 
 // The main function that builds a
 // Huffman Tree and print codes by traversing
 // the built Huffman Tree
-void HuffmanCodes(char data[], int freq[], int size)
+void HuffmanCodes(char data[], int freq[], char* fluxo, int size)
 
 {
+	
 	// Construct Huffman Tree
-	struct MinHeapNode* root
-		= buildHuffmanTree(data, freq, size);
-
+	struct MinHeapNode* root = buildHuffmanTree(data, freq, size);
+	
 	// Print Huffman codes using
 	// the Huffman tree built above
 	int arr[MAX_TREE_HT], top = 0;
@@ -442,6 +473,8 @@ void HuffmanCodes(char data[], int freq[], int size)
 	}
 
 	printCodes(root, arr, top);
+
+	escreveArquivoBinario(root, data, size, fluxo);
 }
 
 // Driver code
@@ -450,10 +483,11 @@ int main()
 
 	char arr[MAX_TREE_HT];
 	int freq[MAX_TREE_HT];
+	char *fluxo = (char*)malloc(MAX_TREE_HT*sizeof(char));
 
-	int size = leArquivoTexto(arr, freq);
+	int size = leArquivoTexto(arr, freq, fluxo);
 
-	HuffmanCodes(arr, freq, size);
+	HuffmanCodes(arr, freq, fluxo, size);
 
 	return 0;
 }
