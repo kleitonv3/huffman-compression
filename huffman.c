@@ -4,7 +4,7 @@
 
 // This constant can be avoided by explicitly
 // calculating height of Huffman Tree
-#define MAX_TREE_HT 100
+#define MAX_TREE_HT 200
 
 // A Huffman tree node
 struct MinHeapNode {
@@ -41,9 +41,15 @@ typedef struct HuffmanArqTree {
 
 typedef struct CompressionNode {
 	char data; // caractere
+	int freq; // frequencia do caractere
 	int tamCodes;
 	int* codes; // codigo binario
 } MatrizCompressao;
+
+typedef struct cabecaArq {
+	unsigned int tamArchiveTree; // Tamanho da arvore de Huffman pro arquivo
+	unsigned long int bitsText; // Quantidades de bits no texto compresso
+} ArchiveHead;
 
 // A utility function allocate a new
 // min heap node with given character
@@ -280,7 +286,7 @@ void printCodes(struct MinHeapNode* root, int arr[],
 	// and its code from arr[]
 	if (isLeaf(root)) {
 
-		printf("%c: ", root->data);
+		printf("[%c : %d] ", root->data, root->freq);
 		printArr(arr, top);
 	}
 }
@@ -355,6 +361,7 @@ void encontraCodigo(struct MinHeapNode* root, int arr[], int top, MatrizCompress
 	// it contains one of the input
 	if (isLeaf(root)) {
 		matriz[(*tam)].data = root->data;
+		matriz[(*tam)].freq = root->freq;
 		// Reescreve arr com o caminho ate aquele char na arvore de Huffman e 
 		// retorna o tamanho do codigo binario
 		matriz[(*tam)].tamCodes = top;
@@ -377,6 +384,41 @@ MatrizCompressao* criaMatrizCompressao(struct MinHeapNode* root, char data[], in
 
 	return matriz;
 }
+
+int leArquivoTexto(char* data, int* freq) {
+	FILE* arquivo = fopen("arquivo.txt", "r");
+    if(arquivo == NULL) {
+        fprintf(stderr, "Erro ao abrir o arquivo.txt.");
+        return -1;
+    }
+
+    int size = 0;
+	int existe = 0;
+    int caractere;
+    
+	while((caractere = fgetc(arquivo)) != EOF ) {
+		// Verificar se ja existe esse caractere na estrutura
+		for (int i=0; i<size; i++) {
+			existe = 0;
+			if (data[i] == caractere) {
+				freq[i]++;
+				existe = 1;
+			}
+		}
+		// Se nao existe adiciona
+		if (existe == 0) {
+			data[size] = caractere;
+			freq[size] = 1;
+			size++;
+		}
+
+	}
+
+    fclose(arquivo);
+
+    return size;
+}
+
 // The main function that builds a
 // Huffman Tree and print codes by traversing
 // the built Huffman Tree
@@ -402,16 +444,14 @@ void HuffmanCodes(char data[], int freq[], int size)
 	printCodes(root, arr, top);
 }
 
-
-
 // Driver code
 int main()
 {
 
-	char arr[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g' };
-	int freq[] = { 5, 9, 12, 13, 16, 45, 50 };
+	char arr[MAX_TREE_HT];
+	int freq[MAX_TREE_HT];
 
-	int size = sizeof(arr) / sizeof(arr[0]);
+	int size = leArquivoTexto(arr, freq);
 
 	HuffmanCodes(arr, freq, size);
 
