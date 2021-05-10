@@ -39,6 +39,12 @@ typedef struct HuffmanArqTree {
 	unsigned int posLeft, posRight;
 } ArchiveTree;
 
+typedef struct CompressionNode {
+	char data; // caractere
+	int tamCodes;
+	int* codes; // codigo binario
+} MatrizCompressao;
+
 // A utility function allocate a new
 // min heap node with given character
 // and frequency of the character
@@ -168,7 +174,7 @@ void buildMinHeap(struct MinHeap* minHeap)
 }
 
 // A utility function to print an array of size n
-void printArr(int arr[], int n)
+void printArr(int* arr, int n)
 {
 	int i;
 	for (i = 0; i < n; ++i)
@@ -328,6 +334,49 @@ struct MinHeapNode* leHuffmanArqTree(struct MinHeapNode* root, ArchiveTree* tree
 
 	return root;
 }
+
+void encontraCodigo(struct MinHeapNode* root, int arr[], int top, MatrizCompressao* matriz, int* tam) {
+	// Assign 0 to left edge and recur
+	if (root->left) {
+
+		arr[top] = 0;
+		encontraCodigo(root->left, arr, top + 1, matriz, tam);
+	}
+
+	// Assign 1 to right edge and recur
+	if (root->right) {
+
+		arr[top] = 1;
+		encontraCodigo(root->right, arr, top + 1, matriz, tam);
+	}
+
+
+	// If this is a leaf node, then
+	// it contains one of the input
+	if (isLeaf(root)) {
+		matriz[(*tam)].data = root->data;
+		// Reescreve arr com o caminho ate aquele char na arvore de Huffman e 
+		// retorna o tamanho do codigo binario
+		matriz[(*tam)].tamCodes = top;
+		
+		// Faz malloc do vetor q vai guardar o codigo do char
+		matriz[(*tam)].codes = (int*)malloc(top*sizeof(int));
+		for (int j=0; j<top; j++) {
+			matriz[(*tam)].codes[j] = arr[j];
+		}
+		(*tam)++;
+	}
+}
+
+MatrizCompressao* criaMatrizCompressao(struct MinHeapNode* root, char data[], int size) {
+	int arr[MAX_TREE_HT], top=0, tam=0;
+
+	MatrizCompressao* matriz = (MatrizCompressao*)malloc(size*sizeof(MatrizCompressao));
+
+	encontraCodigo(root, arr, top, matriz, &tam);
+
+	return matriz;
+}
 // The main function that builds a
 // Huffman Tree and print codes by traversing
 // the built Huffman Tree
@@ -342,7 +391,13 @@ void HuffmanCodes(char data[], int freq[], int size)
 	// the Huffman tree built above
 	int arr[MAX_TREE_HT], top = 0;
 
-	escreveHuffmanTree(root, MAX_TREE_HT);
+	// escreveHuffmanTree(root, MAX_TREE_HT);
+	MatrizCompressao* mat = criaMatrizCompressao(root, data, size);
+	printf("Informacoes na estrutura: \n");
+	for (int i=0; i<size; i++) {
+		printf("Caracter: %c, Codigo: ", mat[i].data);
+		printArr(mat[i].codes, mat[i].tamCodes);
+	}
 
 	printCodes(root, arr, top);
 }
