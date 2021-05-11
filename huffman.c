@@ -65,10 +65,7 @@ struct MinHeap* createMinHeap(unsigned int capacity)
 		= (struct MinHeap*)malloc(sizeof(struct MinHeap));
 
 	// current size is 0
-	printf("Antes\n");
 	minHeap->size = 0;
-	printf("Depos\n");
-
 
 	minHeap->capacity = capacity;
 	
@@ -246,6 +243,12 @@ void printCodes(struct MinHeapNode* root, int arr[], int top)
 	}
 }
 
+// Calcula quantidade de Nodes na arvore
+int quantidadeDeElementos (struct MinHeapNode* root) {
+	if (root == NULL) return 0;
+	else return (1 + quantidadeDeElementos(root->left) + quantidadeDeElementos(root->right));
+}
+
 unsigned int formaHuffmanArqTree (struct MinHeapNode* root, ArchiveTree* tree, int *pos, int aux) {
 	// Primeiro formamos a arvore que vai ser escrita a partir da HuffmanTree
 	// Escreve raiz -> escreve sub-arvore esquerda -> escreve sub-arvore direita
@@ -349,7 +352,7 @@ int leArquivoTexto(char* data, int* freq, char* fluxo) {
 	while((caractere = fgetc(arquivo)) != EOF ) {
 		// Adiciona caractere no fluxo
 		if (size_fluxo >= sizeof(fluxo)) {
-			fluxo = (char*)realloc(fluxo, sizeof(fluxo)*2);
+			fluxo = (char*)realloc(fluxo, sizeof(char)*size_fluxo*2);
 		}
 		fluxo[size_fluxo] = caractere;
 		size_fluxo++;
@@ -380,14 +383,14 @@ unsigned char* saidaComprimida () {
 }
 
 int escreveArquivoBinario (struct MinHeapNode* root, char* data, int size, char* fluxo) {
-	ArchiveTree* tree = (ArchiveTree*)malloc(size*sizeof(ArchiveTree));
-	int aux = 0;
+	int quant, aux = 0;
+	quant = quantidadeDeElementos(root);
+	ArchiveTree* tree = (ArchiveTree*)malloc(quant*sizeof(ArchiveTree));
 	formaHuffmanArqTree (root, tree, &aux, 0);
 
 	MatrizCompressao* mat = criaMatrizCompressao(root, data, size);
-
 	ArchiveHead head;
-	head.tamArchiveTree = sizeof(tree);
+	head.tamArchiveTree = quant;
 	head.bitsText = 0;
 	for (int i=0; i<size; i++) {
 		head.bitsText += mat[i].tamCodes*mat[i].freq;
@@ -400,7 +403,11 @@ int escreveArquivoBinario (struct MinHeapNode* root, char* data, int size, char*
     }
 	// Escreve cabeca e Huffman Archive tree
 	fwrite(&head, sizeof(ArchiveHead), 1, arquivo);
-	fwrite(tree, sizeof(tree), 1, arquivo);
+	fwrite(tree, sizeof(tree), quant, arquivo);
+
+	rewind(arquivo);
+	fread(&head, sizeof(head), 1, arquivo);
+	fread(tree, sizeof(tree), quant, arquivo);
 	return 0;
 }
 
@@ -423,7 +430,7 @@ void HuffmanCodes(char data[], int freq[], char* fluxo, int size)
 
 	printCodes(root, arr, top);
   
-  escreveArquivoBinario(root, data, size, fluxo);
+  	escreveArquivoBinario(root, data, size, fluxo);
 }
 
 // Fun��o main para rodar as fun��es
