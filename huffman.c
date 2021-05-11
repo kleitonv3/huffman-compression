@@ -1,4 +1,3 @@
-// C program for Huffman Coding
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,16 +5,10 @@
 // calculating height of Huffman Tree
 #define MAX_TREE_HT 200
 
-// A Huffman tree node
+// Huffman tree node
 struct MinHeapNode {
-
-	// One of the input characters
 	char data;
-
-	// Frequency of the character
 	unsigned int freq;
-
-	// Left and right child of this node
 	struct MinHeapNode *left, *right;
 };
 
@@ -23,13 +16,13 @@ struct MinHeapNode {
 // min-heap (or Huffman tree) nodes
 struct MinHeap {
 
-	// Current size of min heap
+	// Tamanho atual do min heap
 	unsigned int size;
 
 	// capacity of min heap
 	unsigned int capacity;
 
-	// Array of minheap node pointers
+	// Array de min heap node pointers
 	struct MinHeapNode** array;
 };
 
@@ -51,13 +44,11 @@ typedef struct cabecaArq {
 	unsigned long int bitsText; // Quantidades de bits no texto compresso
 } ArchiveHead;
 
-// A utility function allocate a new
-// min heap node with given character
-// and frequency of the character
+// Fun��o para alocar um novo min heap node
 struct MinHeapNode* newNode(char data, unsigned int freq)
 {
-	struct MinHeapNode* temp = (struct MinHeapNode*)malloc(
-		sizeof(struct MinHeapNode));
+	struct MinHeapNode* temp =
+		(struct MinHeapNode*)malloc(sizeof(struct MinHeapNode));
 
 	temp->left = temp->right = NULL;
 	temp->data = data;
@@ -67,10 +58,8 @@ struct MinHeapNode* newNode(char data, unsigned int freq)
 	return temp;
 }
 
-// A utility function to create
-// a min heap of given capacity
+// Fun��o para alocar um novo min heap (Collection de min heap node)
 struct MinHeap* createMinHeap(unsigned int capacity)
-
 {
 	struct MinHeap* minHeap
 		= (struct MinHeap*)malloc(sizeof(struct MinHeap));
@@ -88,58 +77,43 @@ struct MinHeap* createMinHeap(unsigned int capacity)
 	return minHeap;
 }
 
-// A utility function to
-// swap two min heap nodes
-void swapMinHeapNode(struct MinHeapNode** a,
-					struct MinHeapNode** b)
-
+// Fun��o para trocar dois node
+void swapMinHeapNode(struct MinHeapNode** a, struct MinHeapNode** b)
 {
-
 	struct MinHeapNode* t = *a;
 	*a = *b;
 	*b = t;
 }
 
-// The standard minHeapify function.
+// Fun��o base para minHeapify (min heap)
 void minHeapify(struct MinHeap* minHeap, int idx)
-
 {
-
 	int smallest = idx;
 	int left = 2 * idx + 1;
 	int right = 2 * idx + 2;
 
-	if (left < minHeap->size
-		&& minHeap->array[left]->freq
-			< minHeap->array[smallest]->freq)
+	if (left < minHeap->size && minHeap->array[left]->freq < minHeap->array[smallest]->freq)
 		smallest = left;
 
-	if (right < minHeap->size
-		&& minHeap->array[right]->freq
-			< minHeap->array[smallest]->freq)
+	if (right < minHeap->size && minHeap->array[right]->freq < minHeap->array[smallest]->freq)
 		smallest = right;
 
-	if (smallest != idx) {
-		swapMinHeapNode(&minHeap->array[smallest],
-						&minHeap->array[idx]);
+	if (smallest != idx) 
+	{
+		swapMinHeapNode(&minHeap->array[smallest], &minHeap->array[idx]);
 		minHeapify(minHeap, smallest);
 	}
 }
 
-// A utility function to check
-// if size of heap is 1 or not
+// Fun��o para checar se tem tamanho 1 ou n�o
 int isSizeOne(struct MinHeap* minHeap)
 {
-
 	return (minHeap->size == 1);
 }
 
-// A standard function to extract
-// minimum value node from heap
+// Fun��o base para extrair o n� de menor valor do heap
 struct MinHeapNode* extractMin(struct MinHeap* minHeap)
-
 {
-
 	struct MinHeapNode* temp = minHeap->array[0];
 	minHeap->array[0] = minHeap->array[minHeap->size - 1];
 
@@ -149,20 +123,14 @@ struct MinHeapNode* extractMin(struct MinHeap* minHeap)
 	return temp;
 }
 
-// A utility function to insert
-// a new node to Min Heap
-void insertMinHeap(struct MinHeap* minHeap,
-				struct MinHeapNode* minHeapNode)
-
+// Fun��o para inserir um novo n� no min heap
+void insertMinHeap(struct MinHeap* minHeap, struct MinHeapNode* minHeapNode)
 {
-
 	++minHeap->size;
 	int i = minHeap->size - 1;
 
-	while (i
-		&& minHeapNode->freq
-				< minHeap->array[(i - 1) / 2]->freq) {
-
+	while (i && minHeapNode->freq < minHeap->array[(i - 1) / 2]->freq) 
+	{
 		minHeap->array[i] = minHeap->array[(i - 1) / 2];
 		i = (i - 1) / 2;
 	}
@@ -170,11 +138,9 @@ void insertMinHeap(struct MinHeap* minHeap,
 	minHeap->array[i] = minHeapNode;
 }
 
-// A standard function to build min heap
+// Fun��o base para criar um min heap
 void buildMinHeap(struct MinHeap* minHeap)
-
 {
-
 	int n = minHeap->size - 1;
 	int i;
 
@@ -182,7 +148,7 @@ void buildMinHeap(struct MinHeap* minHeap)
 		minHeapify(minHeap, i);
 }
 
-// A utility function to print an array of size n
+// Fun��o para printar um array de tamanho n
 void printArr(int* arr, int n)
 {
 	int i;
@@ -192,21 +158,14 @@ void printArr(int* arr, int n)
 	printf("\n");
 }
 
-// Utility function to check if this node is leaf
+// Fun��o para checar se o n� � uma folha
 int isLeaf(struct MinHeapNode* root)
-
 {
-
 	return !(root->left) && !(root->right);
 }
 
-// Creates a min heap of capacity
-// equal to size and inserts all character of
-// data[] in min heap. Initially size of
-// min heap is equal to capacity
-struct MinHeap* createAndBuildMinHeap(char data[],
-									unsigned int freq[], int size)
-
+// Cria um min heap de capacidade de tamanho de todos os char em data[]
+struct MinHeap* createAndBuildMinHeap(char data[], int freq[], int size)
 {
 	struct MinHeap* minHeap = createMinHeap(size);
 	
@@ -222,8 +181,9 @@ struct MinHeap* createAndBuildMinHeap(char data[],
 	return minHeap;
 }
 
-// The main function that builds Huffman tree
-struct MinHeapNode* buildHuffmanTree(char data[], unsigned int freq[], int size) {
+// Fun��o principal para criar a Huffman tree
+struct MinHeapNode* buildHuffmanTree(char data[], int freq[], int size)
+{
 	struct MinHeapNode *left, *right, *top;
 
 	// Step 1: Create a min heap of capacity
@@ -261,37 +221,31 @@ struct MinHeapNode* buildHuffmanTree(char data[], unsigned int freq[], int size)
 	return extractMin(minHeap);
 }
 
-// Prints huffman codes from the root of Huffman Tree.
-// It uses arr[] to store codes
-void printCodes(struct MinHeapNode* root, int arr[],
-				int top)
-
+// Fun��o para imprimir Huffman codes da raiz da �rvore
+void printCodes(struct MinHeapNode* root, int arr[], int top)
 {
-
-	// Assign 0 to left edge and recur
-	if (root->left) {
-
+	// Atribui 0 para a esquerda e volta com recurs�o
+	if (root->left) 
+	{
 		arr[top] = 0;
 		printCodes(root->left, arr, top + 1);
 	}
 
-	// Assign 1 to right edge and recur
-	if (root->right) {
-
+	// Atribui 1 para a esquerda e volta com recurs�o
+	if (root->right) 
+	{
 		arr[top] = 1;
 		printCodes(root->right, arr, top + 1);
 	}
 
-	// If this is a leaf node, then
-	// it contains one of the input
-	// characters, print the character
-	// and its code from arr[]
+	// Se � folha, deve imprimir o caracter e seu codigo do arr[]
 	if (isLeaf(root)) {
 
 		printf("[%c : %d] ", root->data, root->freq);
 		printArr(arr, top);
 	}
 }
+
 unsigned int formaHuffmanArqTree (struct MinHeapNode* root, ArchiveTree* tree, int *pos, int aux) {
 	// Primeiro formamos a arvore que vai ser escrita a partir da HuffmanTree
 	// Escreve raiz -> escreve sub-arvore esquerda -> escreve sub-arvore direita
@@ -450,18 +404,13 @@ int escreveArquivoBinario (struct MinHeapNode* root, char* data, int size, char*
 	return 0;
 }
 
-// The main function that builds a
-// Huffman Tree and print codes by traversing
-// the built Huffman Tree
+// Fun��o principal para criar a Huffman Tree e imprimir os c�digos
 void HuffmanCodes(char data[], int freq[], char* fluxo, int size)
-
 {
-	
-	// Construct Huffman Tree
+	// Contruir a �rvore Huffman 
 	struct MinHeapNode* root = buildHuffmanTree(data, freq, size);
-	
-	// Print Huffman codes using
-	// the Huffman tree built above
+
+	// Imprime a �rvore
 	int arr[MAX_TREE_HT], top = 0;
 
 	// escreveHuffmanTree(root, MAX_TREE_HT);
@@ -473,11 +422,11 @@ void HuffmanCodes(char data[], int freq[], char* fluxo, int size)
 	}
 
 	printCodes(root, arr, top);
-
-	escreveArquivoBinario(root, data, size, fluxo);
+  
+  escreveArquivoBinario(root, data, size, fluxo);
 }
 
-// Driver code
+// Fun��o main para rodar as fun��es
 int main()
 {
 
