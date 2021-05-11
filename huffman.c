@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <string.h>
 
 // This constant can be avoided by explicitly
 // calculating height of Huffman Tree
@@ -40,8 +42,12 @@ typedef struct CompressionNode {
 } MatrizCompressao;
 
 typedef struct cabecaArq {
-	unsigned int tamArchiveTree; // Tamanho da arvore de Huffman pro arquivo
-	unsigned long int bitsText; // Quantidades de bits no texto compresso
+	// Tamanho da arvore de Huffman pro arquivo
+	unsigned int tamArchiveTree;
+	// Quantidades de bits no texto compresso
+	unsigned long int bitsText;
+	// Quantidade de caracteres gravados
+	unsigned int quantCaracters;
 } ArchiveHead;
 
 // Fun��o para alocar um novo min heap node
@@ -383,20 +389,32 @@ unsigned char* saidaComprimida () {
 }
 
 int escreveArquivoBinario (struct MinHeapNode* root, char* data, int size, char* fluxo) {
-	int quant, aux = 0;
+	int quant, quant_bytesText, posicao, posbyte, posbit, desloc, i, j, temp = 0;
+	MatrizCompressao* mat;
+	unsigned char* saida;
+	unsigned char aux;
+	ArchiveHead head;
+	int* codigoBin;
+	FILE* arquivo;
+	
+	// Arvore de Huffman alterada para arquivo
 	quant = quantidadeDeElementos(root);
 	ArchiveTree* tree = (ArchiveTree*)malloc(quant*sizeof(ArchiveTree));
-	formaHuffmanArqTree (root, tree, &aux, 0);
+	formaHuffmanArqTree (root, tree, &temp, 0);
 
-	MatrizCompressao* mat = criaMatrizCompressao(root, data, size);
-	ArchiveHead head;
+	// Matriz de compressao
+	mat = criaMatrizCompressao(root, data, size);
+	
+	// Cabeca de informacoes
 	head.tamArchiveTree = quant;
 	head.bitsText = 0;
+	head.quantCaracters = 0;
 	for (int i=0; i<size; i++) {
 		head.bitsText += mat[i].tamCodes*mat[i].freq;
+		head.quantCaracters += mat[i].freq;
 	}
 
-	FILE* arquivo = fopen("saida.bin", "wb");
+	arquivo = fopen("saida.bin", "wb");
     if(arquivo == NULL) {
         fprintf(stderr, "Erro ao criar aquivo binario.");
         return -1;
@@ -405,9 +423,40 @@ int escreveArquivoBinario (struct MinHeapNode* root, char* data, int size, char*
 	fwrite(&head, sizeof(ArchiveHead), 1, arquivo);
 	fwrite(tree, sizeof(tree), quant, arquivo);
 
-	rewind(arquivo);
-	fread(&head, sizeof(head), 1, arquivo);
-	fread(tree, sizeof(tree), quant, arquivo);
+	// Gera e escreve o texto comprimido
+	quant_bytesText = (int)ceil(head.bitsText/8.0); // Quantidade de bytes da saida comprimida
+	saida = (unsigned char*)malloc(quant_bytesText*sizeof(unsigned char));
+
+	memset(saida,0,quant_bytesText); // zera todos os bits do vetor saida
+
+    // inicialização do contador de bit de gravacao o vetor saida
+    posicao = 0;
+
+    // inserir os valores de fluxo comprimidos no vetor saida
+    for (i=0; i<head.quantCaracters; i++) {
+        // Encontrando o codigo do elemento
+		for (j=0; j<size; j++) {
+			if (fluxo[i] == mat[j].data) {
+				codigoBin = mat[j].codes;
+				temp = mat[j].tamCodes;
+			}
+		}
+
+		// Gravar no vetor de saida
+		 for (j=0; j<temp; j++) {
+			posbyte = posicao/8;
+			posbit = posicao%8;
+			aux = codigoBin[j];
+			aux = aux << 8 - posbit - 1;
+			saida[posbyte] = saida[posbyte] | aux;
+			posicao++;
+		}
+    }
+	// Escreve vetor de saida
+	fwrite(saida, sizeof(saida), quant_bytesText, arquivo);
+
+	fclose(arquivo);
+
 	return 0;
 }
 
