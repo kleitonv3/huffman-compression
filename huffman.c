@@ -2,53 +2,22 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <huffman.h>
 
-// This constant can be avoided by explicitly
-// calculating height of Huffman Tree
-#define MAX_TREE_HT 200
+// Fun��o main para rodar as fun��es
+int main()
+{
 
-// Huffman tree node
-struct MinHeapNode {
-	char data;
-	unsigned int freq;
-	struct MinHeapNode *left, *right;
-};
+	char arr[MAX_TREE_HT];
+	int freq[MAX_TREE_HT];
+	char *fluxo = (char*)malloc(MAX_TREE_HT*sizeof(char));
 
-// A Min Heap: Collection of
-// min-heap (or Huffman tree) nodes
-struct MinHeap {
+	int size = leArquivoTexto(arr, freq, fluxo);
 
-	// Tamanho atual do min heap
-	unsigned int size;
+	HuffmanCodes(arr, freq, fluxo, size);
 
-	// capacity of min heap
-	unsigned int capacity;
-
-	// Array de min heap node pointers
-	struct MinHeapNode** array;
-};
-
-typedef struct HuffmanArqTree {
-	char data;
-	unsigned int freq;
-	unsigned int posLeft, posRight;
-} ArchiveTree;
-
-typedef struct CompressionNode {
-	char data; // caractere
-	int freq; // frequencia do caractere
-	int tamCodes;
-	int* codes; // codigo binario
-} MatrizCompressao;
-
-typedef struct cabecaArq {
-	// Tamanho da arvore de Huffman pro arquivo
-	unsigned int tamArchiveTree;
-	// Quantidades de bits no texto compresso
-	unsigned long int bitsText;
-	// Quantidade de caracteres gravados
-	unsigned int quantCaracters;
-} ArchiveHead;
+	return 0;
+}
 
 // Fun��o para alocar um novo min heap node
 struct MinHeapNode* newNode(char data, unsigned int freq)
@@ -244,7 +213,7 @@ void printCodes(struct MinHeapNode* root, int arr[], int top)
 	// Se � folha, deve imprimir o caracter e seu codigo do arr[]
 	if (isLeaf(root)) {
 
-		printf("[%c : %d] ", root->data, root->freq);
+		printf("[%c : %d]  \t", root->data, root->freq);
 		printArr(arr, top);
 	}
 }
@@ -333,7 +302,7 @@ void encontraCodigo(struct MinHeapNode* root, int arr[], int top, MatrizCompress
 	}
 }
 
-MatrizCompressao* criaMatrizCompressao(struct MinHeapNode* root, char data[], int size) {
+MatrizCompressao* criaMatrizCompressao(struct MinHeapNode* root, int size) {
 	int arr[MAX_TREE_HT], top=0, tam=0;
 
 	MatrizCompressao* matriz = (MatrizCompressao*)malloc(size*sizeof(MatrizCompressao));
@@ -384,26 +353,23 @@ int leArquivoTexto(char* data, int* freq, char* fluxo) {
     return size;
 }
 
-unsigned char* saidaComprimida () {
-
-}
-
-int escreveArquivoBinario (struct MinHeapNode* root, char* data, int size, char* fluxo) {
+int escreveArquivoBinario (struct MinHeapNode* root, int size, char* fluxo) {
 	int quant, quant_bytesText, posicao, posbyte, posbit, desloc, i, j, temp = 0;
 	MatrizCompressao* mat;
 	unsigned char* saida;
 	unsigned char aux;
+	ArchiveTree* tree;
 	ArchiveHead head;
 	int* codigoBin;
 	FILE* arquivo;
 	
 	// Arvore de Huffman alterada para arquivo
 	quant = quantidadeDeElementos(root);
-	ArchiveTree* tree = (ArchiveTree*)malloc(quant*sizeof(ArchiveTree));
+	tree = (ArchiveTree*)malloc(quant*sizeof(ArchiveTree));
 	formaHuffmanArqTree (root, tree, &temp, 0);
 
 	// Matriz de compressao
-	mat = criaMatrizCompressao(root, data, size);
+	mat = criaMatrizCompressao(root, size);
 	
 	// Cabeca de informacoes
 	head.tamArchiveTree = quant;
@@ -450,11 +416,106 @@ int escreveArquivoBinario (struct MinHeapNode* root, char* data, int size, char*
 			aux = aux << 8 - posbit - 1;
 			saida[posbyte] = saida[posbyte] | aux;
 			posicao++;
+			
 		}
     }
 	// Escreve vetor de saida
 	fwrite(saida, sizeof(saida), quant_bytesText, arquivo);
 
+	fclose(arquivo);
+
+	return 0;
+}
+void printTree (struct MinHeapNode* root, int level)
+{
+	int i;
+
+	if (root != NULL) {
+		printTree(root->right, level+1);
+
+		for(i=0; i<level; i++)
+			printf("\t");
+
+		printf("[%c : %d]", root->data, root->freq);
+
+		printTree(root->left, level+1);
+	}
+}
+int escreveArquivoTexto () {
+	int padrao, cont, size, quant_bytesText, posicao, posbyte, posbit, desloc, i, j, temp = 0;
+	struct MinHeapNode *root, *ptr_aux;
+	MatrizCompressao* mat;
+	unsigned char* saida, *fluxo;
+	unsigned char aux, data;
+	ArchiveTree* tree;
+	ArchiveHead head;
+	int codigoBin[20];
+	FILE* arquivo;
+
+	arquivo = fopen("saida.bin", "rb");
+    if(arquivo == NULL) {
+        fprintf(stderr, "Erro ao acessar aquivo comprimido.");
+        return -1;
+    }
+
+	// Lendo a cabeca
+	fread(&head, sizeof(head), 1, arquivo);
+	
+	// Lendo a Archive Tree e gerando os Nodes da arvore de Huffman
+	tree = (ArchiveTree*)malloc(sizeof(ArchiveTree)*head.tamArchiveTree);
+	fread(tree, sizeof(tree), head.tamArchiveTree, arquivo);
+
+	
+
+	root = leHuffmanArqTree(root, tree, 0);
+
+	// Lendo string comprimida
+	quant_bytesText = (int)ceil(head.bitsText/8.0); // Quantidade de bytes da saida comprimida
+	fluxo = (unsigned char*)malloc(sizeof(unsigned char)*quant_bytesText);
+	fread(fluxo, sizeof(fluxo), quant_bytesText, arquivo);
+
+	fclose(arquivo);
+
+	// Gerando vetor de saida
+	saida = (unsigned char*)malloc(sizeof(unsigned char)*head.quantCaracters);
+
+	posicao = 0;
+	ptr_aux = root;
+	cont = 0;
+	padrao = 0;
+
+
+	for (i=0; i<head.bitsText; i++) {
+        // Encontrando o codigo do elemento
+		if ((ptr_aux->right==NULL) && (ptr_aux->left==NULL)) {
+			saida[cont] = ptr_aux->data;
+			ptr_aux = root; // reinicia
+			cont++;
+		}
+
+		posbyte = posicao/8;
+		posbit = posicao%8;
+		aux = 1;
+		aux = aux << 8 - posbit - 1;
+		aux = fluxo[posbyte] & aux;
+		aux = aux >> 8 - posbit - 1;
+		posicao += 1;
+		
+		
+		if (aux == 1) {
+			ptr_aux = ptr_aux->right;
+		} else {
+			ptr_aux = ptr_aux->left;
+		}
+    }
+
+	// Escrevendo no arquivo
+	arquivo = fopen("descompressao.txt", "w");
+    if(arquivo == NULL) {
+        fprintf(stderr, "Erro ao criar aquivo descomprimido.");
+        return -1;
+    }
+	fwrite(saida, sizeof(saida), head.quantCaracters, arquivo);
 	fclose(arquivo);
 
 	return 0;
@@ -470,7 +531,7 @@ void HuffmanCodes(char data[], int freq[], char* fluxo, int size)
 	int arr[MAX_TREE_HT], top = 0;
 
 	// escreveHuffmanTree(root, MAX_TREE_HT);
-	MatrizCompressao* mat = criaMatrizCompressao(root, data, size);
+	MatrizCompressao* mat = criaMatrizCompressao(root, size);
 	printf("Informacoes na estrutura: \n");
 	for (int i=0; i<size; i++) {
 		printf("Caracter: %c, Codigo: ", mat[i].data);
@@ -479,20 +540,7 @@ void HuffmanCodes(char data[], int freq[], char* fluxo, int size)
 
 	printCodes(root, arr, top);
   
-  	escreveArquivoBinario(root, data, size, fluxo);
-}
-
-// Fun��o main para rodar as fun��es
-int main()
-{
-
-	char arr[MAX_TREE_HT];
-	int freq[MAX_TREE_HT];
-	char *fluxo = (char*)malloc(MAX_TREE_HT*sizeof(char));
-
-	int size = leArquivoTexto(arr, freq, fluxo);
-
-	HuffmanCodes(arr, freq, fluxo, size);
-
-	return 0;
+  	escreveArquivoBinario(root, size, fluxo);
+	
+	escreveArquivoTexto();
 }
