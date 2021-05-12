@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <huffman.h>
+#include "huffman.h"
 
 // Fun��o main para rodar as fun��es
 int main()
@@ -10,7 +10,7 @@ int main()
 
 	char arr[MAX_TREE_HT];
 	int freq[MAX_TREE_HT];
-	char *fluxo = (char*)malloc(MAX_TREE_HT*sizeof(char));
+	char *fluxo = (char*)malloc(MAX_SIZE_FLUXO*sizeof(char));
 
 	int size = leArquivoTexto(arr, freq, fluxo);
 
@@ -326,8 +326,9 @@ int leArquivoTexto(char* data, int* freq, char* fluxo) {
     
 	while((caractere = fgetc(arquivo)) != EOF ) {
 		// Adiciona caractere no fluxo
-		if (size_fluxo >= sizeof(fluxo)) {
-			fluxo = (char*)realloc(fluxo, sizeof(char)*size_fluxo*2);
+		if (size_fluxo >= MAX_SIZE_FLUXO) {
+			fluxo = (char*)realloc(fluxo, sizeof(char)*MAX_SIZE_FLUXO*2);
+			MAX_SIZE_FLUXO *= 2;
 		}
 		fluxo[size_fluxo] = caractere;
 		size_fluxo++;
@@ -379,7 +380,7 @@ int escreveArquivoBinario (struct MinHeapNode* root, int size, char* fluxo) {
 		head.bitsText += mat[i].tamCodes*mat[i].freq;
 		head.quantCaracters += mat[i].freq;
 	}
-
+    
 	arquivo = fopen("saida.bin", "wb");
     if(arquivo == NULL) {
         fprintf(stderr, "Erro ao criar aquivo binario.");
@@ -387,29 +388,32 @@ int escreveArquivoBinario (struct MinHeapNode* root, int size, char* fluxo) {
     }
 	// Escreve cabeca e Huffman Archive tree
 	fwrite(&head, sizeof(ArchiveHead), 1, arquivo);
-	fwrite(tree, sizeof(tree), quant, arquivo);
-
+	fwrite(tree, sizeof(ArchiveTree), quant, arquivo);
+    
 	// Gera e escreve o texto comprimido
 	quant_bytesText = (int)ceil(head.bitsText/8.0); // Quantidade de bytes da saida comprimida
 	saida = (unsigned char*)malloc(quant_bytesText*sizeof(unsigned char));
-
+	
 	memset(saida,0,quant_bytesText); // zera todos os bits do vetor saida
 
     // inicialização do contador de bit de gravacao o vetor saida
     posicao = 0;
-
+    
     // inserir os valores de fluxo comprimidos no vetor saida
     for (i=0; i<head.quantCaracters; i++) {
+        
         // Encontrando o codigo do elemento
 		for (j=0; j<size; j++) {
 			if (fluxo[i] == mat[j].data) {
 				codigoBin = mat[j].codes;
 				temp = mat[j].tamCodes;
+				break;
 			}
 		}
+		
 
 		// Gravar no vetor de saida
-		 for (j=0; j<temp; j++) {
+		for (j=0; j<temp; j++) {
 			posbyte = posicao/8;
 			posbit = posicao%8;
 			aux = codigoBin[j];
@@ -419,8 +423,9 @@ int escreveArquivoBinario (struct MinHeapNode* root, int size, char* fluxo) {
 			
 		}
     }
+    
 	// Escreve vetor de saida
-	fwrite(saida, sizeof(saida), quant_bytesText, arquivo);
+	fwrite(saida, sizeof(unsigned char), quant_bytesText, arquivo);
 
 	fclose(arquivo);
 
@@ -452,6 +457,8 @@ int escreveArquivoTexto () {
 	int codigoBin[20];
 	FILE* arquivo;
 
+	
+
 	arquivo = fopen("saida.bin", "rb");
     if(arquivo == NULL) {
         fprintf(stderr, "Erro ao acessar aquivo comprimido.");
@@ -460,38 +467,34 @@ int escreveArquivoTexto () {
 
 	// Lendo a cabeca
 	fread(&head, sizeof(head), 1, arquivo);
+
+	
 	
 	// Lendo a Archive Tree e gerando os Nodes da arvore de Huffman
 	tree = (ArchiveTree*)malloc(sizeof(ArchiveTree)*head.tamArchiveTree);
-	fread(tree, sizeof(tree), head.tamArchiveTree, arquivo);
-
+	fread(tree, sizeof(ArchiveTree), head.tamArchiveTree, arquivo);
 	
-
 	root = leHuffmanArqTree(root, tree, 0);
-
+	
 	// Lendo string comprimida
 	quant_bytesText = (int)ceil(head.bitsText/8.0); // Quantidade de bytes da saida comprimida
 	fluxo = (unsigned char*)malloc(sizeof(unsigned char)*quant_bytesText);
 	fread(fluxo, sizeof(fluxo), quant_bytesText, arquivo);
-
+	
 	fclose(arquivo);
-
+	
 	// Gerando vetor de saida
-	saida = (unsigned char*)malloc(sizeof(unsigned char)*head.quantCaracters);
-
+	saida = (unsigned char*)malloc(head.quantCaracters*sizeof(unsigned char));
+	
+	//memset(saida,0,sizeof(unsigned char)*head.quantCaracters); // zera todos os bits do vetor saida
+	
 	posicao = 0;
 	ptr_aux = root;
 	cont = 0;
 	padrao = 0;
 
-
 	for (i=0; i<head.bitsText; i++) {
-        // Encontrando o codigo do elemento
-		if ((ptr_aux->right==NULL) && (ptr_aux->left==NULL)) {
-			saida[cont] = ptr_aux->data;
-			ptr_aux = root; // reinicia
-			cont++;
-		}
+        // Encontrando o codigo do elemento	
 
 		posbyte = posicao/8;
 		posbit = posicao%8;
@@ -507,6 +510,12 @@ int escreveArquivoTexto () {
 		} else {
 			ptr_aux = ptr_aux->left;
 		}
+
+		if (isLeaf(ptr_aux)) {
+			saida[cont] = ptr_aux->data;
+			ptr_aux = root; // reinicia
+			cont++;
+		}
     }
 
 	// Escrevendo no arquivo
@@ -515,7 +524,7 @@ int escreveArquivoTexto () {
         fprintf(stderr, "Erro ao criar aquivo descomprimido.");
         return -1;
     }
-	fwrite(saida, sizeof(saida), head.quantCaracters, arquivo);
+	fwrite(saida, sizeof(unsigned char), head.quantCaracters, arquivo);
 	fclose(arquivo);
 
 	return 0;
@@ -532,13 +541,14 @@ void HuffmanCodes(char data[], int freq[], char* fluxo, int size)
 
 	// escreveHuffmanTree(root, MAX_TREE_HT);
 	MatrizCompressao* mat = criaMatrizCompressao(root, size);
+	/*
 	printf("Informacoes na estrutura: \n");
 	for (int i=0; i<size; i++) {
 		printf("Caracter: %c, Codigo: ", mat[i].data);
 		printArr(mat[i].codes, mat[i].tamCodes);
 	}
-
-	printCodes(root, arr, top);
+	*/
+	//printCodes(root, arr, top);
   
   	escreveArquivoBinario(root, size, fluxo);
 	
