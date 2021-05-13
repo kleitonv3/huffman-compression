@@ -98,14 +98,12 @@ void encontraCodigo(struct MinHeapNode* root, int arr[], int top, MatrizCompress
 
 MatrizCompressao* criaMatrizCompressao(struct MinHeapNode* root, int size);
 
-int leArquivoTexto(char* data, int* freq, char* fluxo);
+int leArquivoTexto(char* data, int* freq, char* fluxo, char arq[]);
 
-int escreveArquivoBinario (struct MinHeapNode* root, int size, char* fluxo);
+int escreveArquivoBinario (struct MinHeapNode* root, int size, char* fluxo, char arq[]);
 
 void printTree (struct MinHeapNode* root, int level);
 
-int escreveArquivoTexto ();
-
-void HuffmanCodes(char data[], int freq[], char* fluxo, int size);
+int escreveArquivoTexto (char arq_entrada[], char arq_saida[]);
 
 #endif // __HUFFMAN_H__
