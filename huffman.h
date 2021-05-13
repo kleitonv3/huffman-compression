@@ -3,7 +3,7 @@
 
 // This constant can be avoided by explicitly
 // calculating height of Huffman Tree
-#define MAX_TREE_HT 300
+#define MAX_TREE_HT 5000
 int MAX_SIZE_FLUXO = MAX_TREE_HT;
 // Huffman tree node
 struct MinHeapNode {
