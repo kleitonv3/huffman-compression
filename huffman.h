@@ -1,8 +1,5 @@
 #ifndef __HUFFMAN_H__
 #define __HUFFMAN_H__
-
-// This constant can be avoided by explicitly
-// calculating height of Huffman Tree
 #define MAX_TREE_HT 5000
 int MAX_SIZE_FLUXO = MAX_TREE_HT;
 // Huffman tree node
@@ -15,13 +12,10 @@ struct MinHeapNode {
 // A Min Heap: Collection of
 // min-heap (or Huffman tree) nodes
 struct MinHeap {
-
 	// Tamanho atual do min heap
 	unsigned int size;
-
-	// capacity of min heap
+	// capacidae do min heap
 	unsigned int capacity;
-
 	// Array de min heap node pointers
 	struct MinHeapNode** array;
 };
